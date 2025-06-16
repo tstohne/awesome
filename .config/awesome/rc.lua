@@ -92,85 +92,10 @@ awful.layout.layouts = {
 }
 -- }}}
 
--- {{{ Menu
--- Simple application menu fallback
-local function generate_simple_app_menu()
-	local apps = {
-		{ "Firefox", "firefox" },
-		{ "Chromium", "chromium" },
-		{ "Thorium", "/opt/thorium-browser/thorium" },
-		{ "Thunar", "thunar" },
-		{ "Emacs", "emacsclient -c" },
-		{ "Calculator", "galculator" },
-		{ "System Monitor", "htop" },
-		{ "Text Editor", "mousepad" },
-		{ "Archive Manager", "file-roller" },
-		{ "Image Viewer", "ristretto" },
-		{ "---" },
-		{ "Open terminal", terminal },
-		{ "Restart awesome", awesome.restart },
-	}
-	return apps
-end
-
--- Initialize myappmenu with fallback first
-local myappmenu = generate_simple_app_menu()
-
 -- Try to load freedesktop module safely
-local freedesktop_ok, freedesktop = pcall(require, "freedesktop")
+local freedesktop = require("freedesktop")
 
-if freedesktop_ok and freedesktop.menu then
-	-- Add some debug info
-	print("Freedesktop module loaded successfully")
-
-	-- Try to create the applications menu using freedesktop
-	local success, menu_or_error = pcall(function()
-		return freedesktop.menu.build({
-			before = {},
-			after = {
-				{ "---" },
-				{ "Open terminal", terminal },
-				{ "Restart awesome", awesome.restart },
-			},
-			skip_items = "LibreOffice Math;", -- Skip problematic items if needed
-		})
-	end)
-
-	if success and menu_or_error and #menu_or_error > 0 then
-		myappmenu = menu_or_error
-		print("Freedesktop menu built successfully with " .. #menu_or_error .. " items")
-		if naughty then
-			naughty.notify({
-				title = "Menu Status",
-				text = "Freedesktop menu loaded with " .. #menu_or_error .. " apps",
-				timeout = 3,
-			})
-		end
-	else
-		-- Freedesktop failed, keep simple fallback
-		print("Freedesktop menu build failed: " .. tostring(menu_or_error))
-		if naughty then
-			naughty.notify({
-				title = "Menu Status",
-				text = "Using simple app menu (freedesktop build failed)",
-				timeout = 5,
-			})
-		end
-	end
-else
-	-- Freedesktop module not available, use simple fallback
-	print("Freedesktop module not available")
-	if naughty then
-		naughty.notify({
-			title = "Menu Status",
-			text = "Using simple app menu (freedesktop not available)",
-			timeout = 3,
-		})
-	end
-end
-
--- Create awesome menu
-myawesomemenu = {
+local myawesomemenu = {
 	{
 		"hotkeys",
 		function()
@@ -188,40 +113,22 @@ myawesomemenu = {
 	},
 }
 
--- Applications menu (static fallback)
-myapplicationsmenu = {
-	{ "terminal", terminal },
-	{ "browser", "/opt/thorium-browser/thorium" },
-	{ "file manager", "thunar" },
-	{ "text editor", "emacsclient -c" },
-	{ "calculator", "galculator" },
-	{ "wallpaper", "nitrogen" },
-}
-
--- System menu
-mysystemmenu = {
-	{ "lock screen", "xlock" },
-	{
-		"logout",
-		function()
-			awesome.quit()
-		end,
+mymainmenu = freedesktop.menu.build({
+	icon_size = beautiful.menu_height or 16,
+	before = {
+		{ "Awesome", myawesomemenu, beautiful.awesome_icon },
 	},
-	{ "restart", awesome.restart },
-	{ "shutdown", "systemctl poweroff" },
-	{ "reboot", "systemctl reboot" },
-}
-
--- Create main menu
-mymainmenu = awful.menu({
-	items = {
-		{ "awesome", myawesomemenu, beautiful.awesome_icon },
-		{ "applications", myapplicationsmenu },
-		{ "apps (auto)", myappmenu }, -- This is your problematic menu
-		{ "system", mysystemmenu },
-		{ "open terminal", terminal },
+	after = {
+		{ "Open terminal", terminal },
 	},
 })
+
+mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon, menu = mymainmenu })
+
+--return {
+--    desktop  = require("freedesktop.desktop"),
+--    menu     = require("freedesktop.menu")
+--}
 
 -- Create launcher
 mylauncher = awful.widget.launcher({
