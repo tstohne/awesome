@@ -58,6 +58,9 @@ beautiful.init(gears.filesystem.get_themes_dir() .. "zenburn/theme.lua")
 
 -- Override font with SauceCodePro Nerd Font
 beautiful.font = "SauceCodePro Nerd Font 12"
+beautiful.menu_font = "SauceCodePro Nerd Font 10"
+
+beautiful.menu_width = 200
 
 -- This is used later as the default terminal and editor to run.
 terminal = "kitty"
