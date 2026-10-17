@@ -2,6 +2,10 @@
 -- found (e.g. lgi). If LuaRocks is not installed, do nothing.
 pcall(require, "luarocks.loader")
 
+-- Less GC churn for a long-running session
+collectgarbage("setpause", 160)
+collectgarbage("setstepmul", 400)
+
 -- Standard awesome library
 local gears = require("gears")
 local awful = require("awful")
@@ -12,11 +16,16 @@ local wibox = require("wibox")
 local beautiful = require("beautiful")
 -- Notification library
 local naughty = require("naughty")
-local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup")
 -- Enable hotkeys help widget for VIM and other apps
 -- when client with a matching name is opened:
 require("awful.hotkeys_popup.keys")
+
+-- Freedesktop menu
+local freedesktop = require("freedesktop")
+
+-- Menubar
+local menubar = require("menubar")
 
 -- Vicious widgets
 local vicious = require("vicious")
@@ -63,41 +72,26 @@ beautiful.menu_font = "SauceCodePro Nerd Font 10"
 beautiful.menu_width = 200
 
 -- This is used later as the default terminal and editor to run.
+-- The empty alternate editor makes emacsclient start the daemon if needed.
 terminal = "kitty"
-editor = "emacsclient -c"
+editor = 'emacsclient -c -a ""'
 editor_cmd = editor
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
--- If you do not like this or do not have such a key,
--- I suggest you to remap Mod4 to another key using xmodmap or other tools.
--- However, you can use another modifier like Mod1, but it may interact with others.
 modkey = "Mod4"
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
+-- Trimmed to the ones actually used; tile is the default (first).
 awful.layout.layouts = {
-	awful.layout.suit.floating,
 	awful.layout.suit.tile,
-	awful.layout.suit.tile.left,
 	awful.layout.suit.tile.bottom,
-	awful.layout.suit.tile.top,
-	awful.layout.suit.fair,
-	awful.layout.suit.fair.horizontal,
-	awful.layout.suit.spiral,
-	awful.layout.suit.spiral.dwindle,
 	awful.layout.suit.max,
-	awful.layout.suit.max.fullscreen,
-	awful.layout.suit.magnifier,
-	awful.layout.suit.corner.nw,
-	-- awful.layout.suit.corner.ne,
-	-- awful.layout.suit.corner.sw,
-	-- awful.layout.suit.corner.se,
+	awful.layout.suit.floating,
 }
 -- }}}
 
--- Try to load freedesktop module safely
-local freedesktop = require("freedesktop")
-
+-- {{{ Menu
 local myawesomemenu = {
 	{
 		"hotkeys",
@@ -126,49 +120,21 @@ mymainmenu = freedesktop.menu.build({
 	},
 })
 
-mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon, menu = mymainmenu })
-
---return {
---    desktop  = require("freedesktop.desktop"),
---    menu     = require("freedesktop.menu")
---}
-
--- Create launcher
 mylauncher = awful.widget.launcher({
 	image = beautiful.awesome_icon,
 	menu = mymainmenu,
 })
+-- }}}
 
--- Menubar configuration
 menubar.utils.terminal = terminal
 menubar.cache_entries = true
 menubar.app_folders = {
 	"/usr/share/applications/",
 	"/usr/local/share/applications/",
 	"/var/lib/flatpak/exports/share/applications/",
-	os.getenv("HOME") .. "/.local/share/applications/", -- Fix tilde expansion
+	os.getenv("HOME") .. "/.local/share/applications/",
 }
 menubar.show_categories = true
-
--- Force menubar refresh after a delay to ensure everything is loaded
-gears.timer.start_new(2, function()
-	menubar.refresh()
-	return false -- Don't repeat
-end)
-
--- Add after the menu creation
-gears.timer.start_new(3, function()
-	print("myappmenu type:", type(myappmenu))
-	if type(myappmenu) == "table" then
-		print("myappmenu length:", #myappmenu)
-		for i, item in ipairs(myappmenu) do
-			if i <= 5 then -- Show first 5 items
-				print("Item " .. i .. ":", item[1] or "nil")
-			end
-		end
-	end
-	return false
-end)
 
 -- Keyboard map indicator and switcher
 mykeyboardlayout = awful.widget.keyboardlayout()
@@ -177,26 +143,27 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 -- Create a textclock widget
 mytextclock = wibox.widget.textclock()
 
--- Vicious widgets
+-- Vicious widgets (longer intervals = fewer wakeups)
 -- CPU widget
 cpuwidget = wibox.widget.textbox()
-vicious.register(cpuwidget, vicious.widgets.cpu, "CPU: $1%", 3)
+vicious.register(cpuwidget, vicious.widgets.cpu, "CPU: $1%", 5)
 
 -- Memory widget
 memwidget = wibox.widget.textbox()
-vicious.register(memwidget, vicious.widgets.mem, "MEM: $1%", 13)
+vicious.register(memwidget, vicious.widgets.mem, "MEM: $1%", 15)
 
--- Network widget (adjust interface name as needed)
+-- Network widget (adjust interface name as needed: check `ip link`)
 netwidget = wibox.widget.textbox()
-vicious.register(netwidget, vicious.widgets.net, "NET: ↓${wlan0 down_kb}kb/s ↑${wlan0 up_kb}kb/s", 3)
-
--- Battery widget (uncomment if you have a battery)
-batwidget = wibox.widget.textbox()
-vicious.register(batwidget, vicious.widgets.bat, "BAT: $2%", 61, "BAT0")
+vicious.register(netwidget, vicious.widgets.net, "NET: ↓${wlan0 down_kb}kb/s ↑${wlan0 up_kb}kb/s", 5)
 
 -- Temperature widget
 tempwidget = wibox.widget.textbox()
-vicious.register(tempwidget, vicious.widgets.thermal, "TEMP: $1°C", 19, "thermal_zone0")
+vicious.register(tempwidget, vicious.widgets.thermal, "TEMP: $1°C", 20, "thermal_zone0")
+
+-- Battery widget: only register it if you also add it to the wibar below,
+-- otherwise vicious keeps polling for nothing.
+-- batwidget = wibox.widget.textbox()
+-- vicious.register(batwidget, vicious.widgets.bat, "BAT: $2%", 61, "BAT0")
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = gears.table.join(
@@ -321,8 +288,6 @@ awful.screen.connect_for_each_screen(function(s)
 			wibox.widget.textbox(" | "),
 			tempwidget,
 			wibox.widget.textbox(" | "),
-			-- batwidget,  -- Uncomment if you have a battery
-			-- wibox.widget.textbox(" | "),
 			mytextclock,
 			s.mylayoutbox,
 		},
@@ -346,6 +311,15 @@ globalkeys = gears.table.join(
 	awful.key({ modkey }, "Left", awful.tag.viewprev, { description = "view previous", group = "tag" }),
 	awful.key({ modkey }, "Right", awful.tag.viewnext, { description = "view next", group = "tag" }),
 	awful.key({ modkey }, "Escape", awful.tag.history.restore, { description = "go back", group = "tag" }),
+
+	awful.key({ modkey }, "p", function()
+		menubar.show()
+	end, { description = "show the menubar", group = "launcher" }),
+
+	awful.key({ modkey, "Shift" }, "p", function()
+		menubar.refresh()
+		menubar.show()
+	end, { description = "refresh and show menubar", group = "launcher" }),
 
 	awful.key({ modkey }, "j", function()
 		awful.client.focus.byidx(1)
@@ -388,11 +362,12 @@ globalkeys = gears.table.join(
 	awful.key({ modkey }, "b", function()
 		awful.spawn("/opt/thorium-browser/thorium")
 	end, { description = "open thorium browser", group = "launcher" }),
-	awful.key({ modkey }, "e", function()
+	-- Moved from Mod+f, which conflicted with the client fullscreen binding
+	awful.key({ modkey, "Shift" }, "f", function()
 		awful.spawn("thunar")
 	end, { description = "open file manager", group = "launcher" }),
 	awful.key({ modkey, "Shift" }, "e", function()
-		awful.spawn("emacsclient -c")
+		awful.spawn('emacsclient -r -a ""')
 	end, { description = "open emacs", group = "launcher" }),
 	awful.key({ modkey, "Control" }, "r", awesome.restart, { description = "reload awesome", group = "awesome" }),
 	awful.key({ modkey, "Shift" }, "q", awesome.quit, { description = "quit awesome", group = "awesome" }),
@@ -440,19 +415,9 @@ globalkeys = gears.table.join(
 			prompt = "Run Lua code: ",
 			textbox = awful.screen.focused().mypromptbox.widget,
 			exe_callback = awful.util.eval,
-			history_path = awful.util.get_cache_dir() .. "/history_eval",
+			history_path = gears.filesystem.get_cache_dir() .. "/history_eval",
 		})
 	end, { description = "lua execute prompt", group = "awesome" }),
-	-- Menubar and application launchers
-	awful.key({ modkey }, "p", function()
-		menubar.show()
-	end, { description = "show the menubar", group = "launcher" }),
-
-	-- Force refresh menubar cache
-	awful.key({ modkey, "Shift" }, "p", function()
-		menubar.refresh()
-		menubar.show()
-	end, { description = "refresh and show menubar", group = "launcher" }),
 
 	-- Alternative application launcher with dmenu-like functionality
 	awful.key({ modkey }, "d", function()
@@ -618,12 +583,14 @@ awful.rules.rules = {
 		properties = { floating = true },
 	},
 
-	-- Add titlebars to normal clients and dialogs
-	{ rule_any = { type = { "normal", "dialog" } }, properties = { titlebars_enabled = true } },
+	-- Tag assignment for daily apps. Verify classes with: xprop WM_CLASS
+	{ rule = { class = "Thorium-browser" }, properties = { tag = "2" } },
+	{ rule = { class = "Emacs" }, properties = { tag = "3" } },
+	{ rule_any = { class = { "Ardour", "ardour_ardour" } }, properties = { tag = "5" } },
 
-	-- Set Firefox to always map on the tag named "2" on screen 1.
-	-- { rule = { class = "Firefox" },
-	--   properties = { screen = 1, tag = "2" } },
+	-- Titlebars are disabled on purpose (keyboard-driven workflow).
+	-- To re-enable, add back a rule with titlebars_enabled = true and a
+	-- "request::titlebars" signal handler.
 }
 -- }}}
 
@@ -640,46 +607,6 @@ client.connect_signal("manage", function(c)
 	end
 end)
 
--- Add a titlebar if titlebars_enabled is set to true in the rules.
-client.connect_signal("request::titlebars", function(c)
-	-- buttons for the titlebar
-	local buttons = gears.table.join(
-		awful.button({}, 1, function()
-			c:emit_signal("request::activate", "titlebar", { raise = true })
-			awful.mouse.client.move(c)
-		end),
-		awful.button({}, 3, function()
-			c:emit_signal("request::activate", "titlebar", { raise = true })
-			awful.mouse.client.resize(c)
-		end)
-	)
-
-	awful.titlebar(c):setup({
-		{ -- Left
-			awful.titlebar.widget.iconwidget(c),
-			buttons = buttons,
-			layout = wibox.layout.fixed.horizontal,
-		},
-		{ -- Middle
-			{ -- Title
-				align = "center",
-				widget = awful.titlebar.widget.titlewidget(c),
-			},
-			buttons = buttons,
-			layout = wibox.layout.flex.horizontal,
-		},
-		{ -- Right
-			awful.titlebar.widget.floatingbutton(c),
-			awful.titlebar.widget.maximizedbutton(c),
-			awful.titlebar.widget.stickybutton(c),
-			awful.titlebar.widget.ontopbutton(c),
-			awful.titlebar.widget.closebutton(c),
-			layout = wibox.layout.fixed.horizontal(),
-		},
-		layout = wibox.layout.align.horizontal,
-	})
-end)
-
 -- Enable sloppy focus, so that focus follows mouse.
 client.connect_signal("mouse::enter", function(c)
 	c:emit_signal("request::activate", "mouse_enter", { raise = false })
@@ -694,15 +621,21 @@ end)
 -- }}}
 
 -- {{{ Autostart applications
+-- Only start a program if it isn't already running, so that restarting
+-- awesome (Mod+Ctrl+r) doesn't pile up duplicate processes.
+local function run_once(cmd)
+	local name = cmd:match("^%S+")
+	awful.spawn.with_shell(string.format("pgrep -u $USER -x %s >/dev/null || (%s)", name, cmd))
+end
+
 -- Restore wallpaper with nitrogen
 awful.spawn.with_shell("nitrogen --restore")
 
 -- Set Swedish keyboard layout with caps lock and escape swapped
 awful.spawn.with_shell("setxkbmap se -option caps:swapescape")
 
--- Other autostart applications (uncomment as needed)
-awful.spawn.with_shell("picom") -- Compositor
-awful.spawn.with_shell("nm-applet") -- Network manager applet
-awful.spawn.with_shell("blueman-applet") -- Bluetooth applet
-awful.spawn.with_shell("volumeicon") -- Audio system tray
+run_once("picom") -- Compositor
+run_once("nm-applet") -- Network manager applet
+run_once("blueman-applet") -- Bluetooth applet
+run_once("volumeicon") -- Audio system tray
 -- }}}
