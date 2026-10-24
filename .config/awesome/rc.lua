@@ -89,6 +89,10 @@ awful.layout.layouts = {
 	awful.layout.suit.max,
 	awful.layout.suit.floating,
 }
+
+-- Workspace (tag) names. Tags 1-5 are named; 6-9 keep plain numbers.
+-- Rules and autostart below refer to tags by these names.
+tag_names = { "Web", "Term", "Emacs", "Chat", "Etc", "6", "7", "8", "9" }
 -- }}}
 
 -- {{{ Menu
@@ -228,7 +232,7 @@ awful.screen.connect_for_each_screen(function(s)
 	set_wallpaper(s)
 
 	-- Each screen has its own tag table.
-	awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+	awful.tag(tag_names, s, awful.layout.layouts[1])
 
 	-- Create a promptbox for each screen
 	s.mypromptbox = awful.widget.prompt()
@@ -584,9 +588,10 @@ awful.rules.rules = {
 	},
 
 	-- Tag assignment for daily apps. Verify classes with: xprop WM_CLASS
-	{ rule = { class = "Thorium-browser" }, properties = { tag = "2" } },
-	{ rule = { class = "Emacs" }, properties = { tag = "3" } },
-	{ rule_any = { class = { "Ardour", "ardour_ardour" } }, properties = { tag = "5" } },
+	{ rule = { class = "Thorium-browser" }, properties = { tag = "Web" } },
+	{ rule = { class = "Emacs" }, properties = { tag = "Emacs" } },
+	{ rule = { class = "Mattermost" }, properties = { tag = "Chat" } },
+	{ rule_any = { class = { "Ardour", "ardour_ardour" } }, properties = { tag = "Etc" } },
 
 	-- Titlebars are disabled on purpose (keyboard-driven workflow).
 	-- To re-enable, add back a rule with titlebars_enabled = true and a
@@ -633,6 +638,29 @@ awful.spawn.with_shell("nitrogen --restore")
 
 -- Set Swedish keyboard layout with caps lock and escape swapped
 awful.spawn.with_shell("setxkbmap se -option caps:swapescape")
+
+-- Daily apps, each opened on its own workspace. These are started only once
+-- per login session (tracked with a flag file in the runtime dir, which is
+-- cleared on logout/reboot), so restarting awesome (Mod+Ctrl+r) won't
+-- launch duplicates or reopen apps you closed on purpose.
+local autostart_apps = {
+	{ tag = "Web", cmd = "/usr/bin/thorium-browser" },
+	{ tag = "Term", cmd = "/usr/bin/kitty" },
+	{ tag = "Emacs", cmd = "/usr/bin/emacsclient -r -a ''" },
+	{ tag = "Chat", cmd = "/usr/bin/mattermost-desktop" },
+}
+
+local autostart_flag = (os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/awesome-apps-autostarted"
+if not gears.filesystem.file_readable(autostart_flag) then
+	local f = io.open(autostart_flag, "w")
+	if f then
+		f:close()
+	end
+	local s = awful.screen.focused()
+	for _, app in ipairs(autostart_apps) do
+		awful.spawn(app.cmd, { tag = awful.tag.find_by_name(s, app.tag) })
+	end
+end
 
 run_once("picom") -- Compositor
 run_once("nm-applet") -- Network manager applet
