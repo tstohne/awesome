@@ -153,8 +153,14 @@ cpuwidget = wibox.widget.textbox()
 vicious.register(cpuwidget, vicious.widgets.cpu, "CPU: $1%", 5)
 
 -- Memory widget
+-- Memory widget
 memwidget = wibox.widget.textbox()
-vicious.register(memwidget, vicious.widgets.mem, "MEM: $1%", 15)
+vicious.register(memwidget, vicious.widgets.mem, function(widget, args)
+	return string.format("MEM: %.1f GB (%d%%)", args[2] / 1024, args[1])
+end, 15)
+
+--memwidget = wibox.widget.textbox()
+--vicious.register(memwidget, vicious.widgets.mem, "MEM: $1%", 15)
 
 -- Network widget (adjust interface name as needed: check `ip link`)
 netwidget = wibox.widget.textbox()
