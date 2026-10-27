@@ -652,7 +652,7 @@ awful.spawn.with_shell("setxkbmap se -option caps:swapescape")
 local autostart_apps = {
 	{ tag = "Web", cmd = "/usr/bin/thorium-browser" },
 	{ tag = "Term", cmd = "/usr/bin/kitty" },
-	{ tag = "Emacs", cmd = "/usr/bin/emacsclient -r -a ''" },
+	{ tag = "Emacs", cmd = "/usr/bin/emacsclient -c" },
 	{ tag = "Chat", cmd = "/usr/bin/mattermost-desktop" },
 }
 
@@ -668,7 +668,7 @@ if not gears.filesystem.file_readable(autostart_flag) then
 	end
 end
 
-run_once("picom") -- Compositor
+run_once("picom --config ~/.config/picom/picom.conf -b") -- Compositor
 run_once("nm-applet") -- Network manager applet
 run_once("blueman-applet") -- Bluetooth applet
 run_once("volumeicon") -- Audio system tray
