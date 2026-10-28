@@ -74,7 +74,7 @@ beautiful.menu_width = 200
 -- This is used later as the default terminal and editor to run.
 -- The empty alternate editor makes emacsclient start the daemon if needed.
 terminal = "kitty"
-editor = 'emacsclient -c -a ""'
+editor = 'emacsclient -c'
 editor_cmd = editor
 
 -- Default modkey.
@@ -377,7 +377,7 @@ globalkeys = gears.table.join(
 		awful.spawn("thunar")
 	end, { description = "open file manager", group = "launcher" }),
 	awful.key({ modkey, "Shift" }, "e", function()
-		awful.spawn('emacsclient -r -a ""')
+		awful.spawn('emacsclient -c')
 	end, { description = "open emacs", group = "launcher" }),
 	awful.key({ modkey, "Control" }, "r", awesome.restart, { description = "reload awesome", group = "awesome" }),
 	awful.key({ modkey, "Shift" }, "q", awesome.quit, { description = "quit awesome", group = "awesome" }),
