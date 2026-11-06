@@ -74,7 +74,7 @@ beautiful.menu_width = 200
 -- This is used later as the default terminal and editor to run.
 -- The empty alternate editor makes emacsclient start the daemon if needed.
 terminal = "kitty"
-editor = 'emacsclient -c'
+editor = "emacsclient -c"
 editor_cmd = editor
 
 -- Default modkey.
@@ -370,15 +370,15 @@ globalkeys = gears.table.join(
 		awful.spawn("rofi -show drun -theme-str 'window {width: 50%; height: 50%;}' -font 'SauceCodePro Nerd Font 12'")
 	end, { description = "open rofi launcher", group = "launcher" }),
 	awful.key({ modkey }, "b", function()
-		awful.spawn("/opt/thorium-browser/thorium")
-	end, { description = "open thorium browser", group = "launcher" }),
+		awful.spawn("/opt/brave-bin/brave-browser")
+	end, { description = "open brave browser", group = "launcher" }),
 	-- Moved from Mod+f, which conflicted with the client fullscreen binding
 	awful.key({ modkey, "Shift" }, "f", function()
 		awful.spawn("thunar")
 	end, { description = "open file manager", group = "launcher" }),
 	awful.key({ modkey, "Shift" }, "e", function()
-		awful.spawn('emacsclient -c')
-	end, { description = "open emacs", group = "launcher" }),
+		awful.spawn("emacsclient -c")
+	end, { description = "open emacsclient", group = "launcher" }),
 	awful.key({ modkey, "Control" }, "r", awesome.restart, { description = "reload awesome", group = "awesome" }),
 	awful.key({ modkey, "Shift" }, "q", awesome.quit, { description = "quit awesome", group = "awesome" }),
 
@@ -594,8 +594,8 @@ awful.rules.rules = {
 	},
 
 	-- Tag assignment for daily apps. Verify classes with: xprop WM_CLASS
-	{ rule = { class = "Thorium-browser" }, properties = { tag = "Web" } },
-	{ rule = { class = "Emacs" }, properties = { tag = "Emacs" } },
+	{ rule = { class = "brave-browser" }, properties = { tag = "Web" } },
+	{ rule = { class = "emacs" }, properties = { tag = "Emacs" } },
 	{ rule = { class = "Mattermost" }, properties = { tag = "Chat" } },
 	{ rule_any = { class = { "Ardour", "ardour_ardour" } }, properties = { tag = "Etc" } },
 
@@ -650,7 +650,7 @@ awful.spawn.with_shell("setxkbmap se -option caps:swapescape")
 -- cleared on logout/reboot), so restarting awesome (Mod+Ctrl+r) won't
 -- launch duplicates or reopen apps you closed on purpose.
 local autostart_apps = {
-	{ tag = "Web", cmd = "/usr/bin/thorium-browser" },
+	{ tag = "Web", cmd = "/opt/brave-bin/brave-browser" },
 	{ tag = "Term", cmd = "/usr/bin/kitty" },
 	{ tag = "Emacs", cmd = "/usr/bin/emacsclient -c" },
 	{ tag = "Chat", cmd = "/usr/bin/mattermost-desktop" },
