@@ -64,18 +64,19 @@ end
 -- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(gears.filesystem.get_themes_dir() .. "zenburn/theme.lua")
-
+--beautiful.init(gears.filesystem.get_configuration_dir() .. "theme.lua")
 -- Override font with SauceCodePro Nerd Font
-beautiful.font = "SauceCodePro Nerd Font 12"
-beautiful.menu_font = "SauceCodePro Nerd Font 10"
+beautiful.font = "FiraCode Nerd Font Medium 10"
+beautiful.menu_font = "FiraCode Nerd Font Medium 10"
 
 beautiful.menu_width = 200
 
 -- This is used later as the default terminal and editor to run.
 -- The empty alternate editor makes emacsclient start the daemon if needed.
 terminal = "kitty"
-editor = "emacsclient -c"
+editor = "emacsclient -c -a ''"
 editor_cmd = editor
+local mail_cmd = "betterbird" -- Flatpak: "flatpak run eu.betterbird.Betterbird"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -90,9 +91,9 @@ awful.layout.layouts = {
 	awful.layout.suit.floating,
 }
 
--- Workspace (tag) names. Tags 1-5 are named; 6-9 keep plain numbers.
+-- Workspace (tag) names. Tags 1-6 are named; 7-8 keep plain numbers.
 -- Rules and autostart below refer to tags by these names.
-tag_names = { "Web", "Term", "Emacs", "Chat", "Etc", "6", "7", "8", "9" }
+tag_names = { "Web", "Term", "Emacs", "Chat", "Mail", "Etc", "7", "8" }
 -- }}}
 
 -- {{{ Menu
@@ -153,7 +154,6 @@ cpuwidget = wibox.widget.textbox()
 vicious.register(cpuwidget, vicious.widgets.cpu, "CPU: $1%", 5)
 
 -- Memory widget
--- Memory widget
 memwidget = wibox.widget.textbox()
 vicious.register(memwidget, vicious.widgets.mem, function(widget, args)
 	return string.format("MEM: %.1f GB (%d%%)", args[2] / 1024, args[1])
@@ -164,16 +164,16 @@ end, 15)
 
 -- Network widget (adjust interface name as needed: check `ip link`)
 netwidget = wibox.widget.textbox()
-vicious.register(netwidget, vicious.widgets.net, "NET: ↓${wlan0 down_kb}kb/s ↑${wlan0 up_kb}kb/s", 5)
+vicious.register(netwidget, vicious.widgets.net, "NET: ↓${wlan0 down_kb}kb/s ↑${wlan0 up_kb}kb/s | ↓${eth0 down_kb}kb/s ↑${eth0 up_kb}kb/s", 5)
 
 -- Temperature widget
 tempwidget = wibox.widget.textbox()
-vicious.register(tempwidget, vicious.widgets.thermal, "TEMP: $1°C", 20, "thermal_zone0")
+vicious.register(tempwidget, vicious.widgets.thermal, "TEMP: $1°C", 15, "thermal_zone0")
 
 -- Battery widget: only register it if you also add it to the wibar below,
 -- otherwise vicious keeps polling for nothing.
--- batwidget = wibox.widget.textbox()
--- vicious.register(batwidget, vicious.widgets.bat, "BAT: $2%", 61, "BAT0")
+batwidget = wibox.widget.textbox()
+vicious.register(batwidget, vicious.widgets.bat, "BAT: $2%", 30, "BAT1")
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = gears.table.join(
@@ -367,7 +367,7 @@ globalkeys = gears.table.join(
 		awful.spawn(terminal)
 	end, { description = "open a terminal", group = "launcher" }),
 	awful.key({ modkey, "Shift" }, "Return", function()
-		awful.spawn("rofi -show drun -theme-str 'window {width: 50%; height: 50%;}' -font 'SauceCodePro Nerd Font 12'")
+		awful.spawn("rofi -show drun -theme-str 'window {width: 50%; height: 50%;}' -font 'Fira Code Nerd Medium 10'")
 	end, { description = "open rofi launcher", group = "launcher" }),
 	awful.key({ modkey }, "b", function()
 		awful.spawn("/opt/brave-bin/brave-browser")
@@ -377,10 +377,20 @@ globalkeys = gears.table.join(
 		awful.spawn("thunar")
 	end, { description = "open file manager", group = "launcher" }),
 	awful.key({ modkey, "Shift" }, "e", function()
-		awful.spawn("emacsclient -c")
+		awful.spawn("emacsclient -c -a ''")
 	end, { description = "open emacsclient", group = "launcher" }),
 	awful.key({ modkey, "Control" }, "r", awesome.restart, { description = "reload awesome", group = "awesome" }),
 	awful.key({ modkey, "Shift" }, "q", awesome.quit, { description = "quit awesome", group = "awesome" }),
+	awful.key({ modkey, "Shift" }, "x", function()
+		awful.spawn("loginctl lock-session")
+	end, { description = "lock screen", group = "awesome" }),
+	awful.key({ modkey, "Shift" }, "m", function()
+		local t = awful.tag.find_by_name(awful.screen.focused(), "Mail")
+		if t then
+			t:view_only()
+		end
+		awful.spawn(mail_cmd)
+	end, { description = "open mail client", group = "launcher" }),
 
 	awful.key({ modkey }, "l", function()
 		awful.tag.incmwfact(0.05)
@@ -432,7 +442,7 @@ globalkeys = gears.table.join(
 	-- Alternative application launcher with dmenu-like functionality
 	awful.key({ modkey }, "d", function()
 		awful.spawn(
-			"dmenu_run -fn 'SauceCodePro Nerd Font:size=12' -nb '#3f3f3f' -nf '#dcdccc' -sb '#7f9f7f' -sf '#000000'"
+			"dmenu_run -fn 'FiraCode Nerd Font:style=Medium:size=10' -nb '#3f3f3f' -nf '#dcdccc' -sb '#7f9f7f' -sf '#000000'"
 		)
 	end, { description = "run dmenu", group = "launcher" })
 )
@@ -473,7 +483,7 @@ clientkeys = gears.table.join(
 		c.maximized_vertical = not c.maximized_vertical
 		c:raise()
 	end, { description = "(un)maximize vertically", group = "client" }),
-	awful.key({ modkey, "Shift" }, "m", function(c)
+	awful.key({ modkey, "Control", "Shift" }, "m", function(c)
 		c.maximized_horizontal = not c.maximized_horizontal
 		c:raise()
 	end, { description = "(un)maximize horizontally", group = "client" })
@@ -482,7 +492,7 @@ clientkeys = gears.table.join(
 -- Bind all key numbers to tags.
 -- Be careful: we use keycodes to make it work on any keyboard layout.
 -- This should map on the top row of your keyboard, usually 1 to 9.
-for i = 1, 9 do
+for i = 1, #tag_names do
 	globalkeys = gears.table.join(
 		globalkeys,
 		-- View tag only.
@@ -594,10 +604,12 @@ awful.rules.rules = {
 	},
 
 	-- Tag assignment for daily apps. Verify classes with: xprop WM_CLASS
-	{ rule = { class = "brave-browser" }, properties = { tag = "Web" } },
-	{ rule = { class = "emacs" }, properties = { tag = "Emacs" } },
-	{ rule = { class = "Mattermost" }, properties = { tag = "Chat" } },
+	{ rule = { class = "Brave-browser" }, properties = { tag = "Web" } },
+	{ rule = { class = "Emacs" }, properties = { tag = "Emacs" } },
+	{ rule = { class = "mattermost-desktop" }, properties = { tag = "Chat" } },
+	{ rule = { class = "eu.betterbird.Betterbird" }, properties = { tag = "Mail" } },
 	{ rule_any = { class = { "Ardour", "ardour_ardour" } }, properties = { tag = "Etc" } },
+  { rule = { class = "autostart-term" }, properties = { tag = "Term" } },
 
 	-- Titlebars are disabled on purpose (keyboard-driven workflow).
 	-- To re-enable, add back a rule with titlebars_enabled = true and a
@@ -651,9 +663,10 @@ awful.spawn.with_shell("setxkbmap se -option caps:swapescape")
 -- launch duplicates or reopen apps you closed on purpose.
 local autostart_apps = {
 	{ tag = "Web", cmd = "/opt/brave-bin/brave-browser" },
-	{ tag = "Term", cmd = "/usr/bin/kitty" },
-	{ tag = "Emacs", cmd = "/usr/bin/emacsclient -c" },
+  { tag = "Term", cmd = "/usr/bin/kitty --class autostart-term" },
+	{ tag = "Emacs", cmd = "/usr/bin/emacsclient -c -a ''" },
 	{ tag = "Chat", cmd = "/usr/bin/mattermost-desktop" },
+	{ tag = "Mail", cmd = mail_cmd },
 }
 
 local autostart_flag = (os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/awesome-apps-autostarted"
@@ -672,4 +685,9 @@ run_once("picom --config ~/.config/picom/picom.conf -b") -- Compositor
 run_once("nm-applet") -- Network manager applet
 run_once("blueman-applet") -- Bluetooth applet
 run_once("volumeicon") -- Audio system tray
+
+-- Screen lock: xss-lock runs i3lock on idle, on loginctl lock-session, and
+-- before suspend (--transfer-sleep-lock delays sleep until the locker is up).
+run_once("xss-lock --transfer-sleep-lock -- i3lock -n -c 000000")
+awful.spawn.with_shell("xset s 600 5") -- idle timeout: lock after 10 min
 -- }}}
